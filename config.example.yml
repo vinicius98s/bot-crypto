@@ -1,0 +1,13 @@
+track_assets:
+  - BTC
+  - ETH
+
+buying_asset: USDT
+
+# Percentage value
+min_sell_profit: 10
+
+api_key: abc123
+secret_key: 123abc
+
+
