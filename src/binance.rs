@@ -23,7 +23,7 @@ pub struct Binance {
 
 impl Binance {
     pub fn new() -> Self {
-        let base_url = Url::parse("https:testnet.binance.vision").unwrap();
+        let base_url = Url::parse("https://testnet.binance.vision").unwrap();
 
         let settings = match Settings::default() {
             Ok(result) => result,
@@ -82,18 +82,28 @@ impl Binance {
 
         let parsed_response: Value = serde_json::from_str(response.as_str())?;
         match parsed_response["balances"].as_array() {
-            Some(balances) => Ok(balances
+            Some(balances) => Ok(self
+                .tracked_assets
                 .iter()
-                .map(|value| {
-                    let mut asset = value["asset"].to_string();
-                    asset.retain(|c| c != '"');
+                .map(|asset| {
+                    let position = balances.iter().find(|value| {
+                        let mut symbol = value["asset"].to_string();
+                        symbol.retain(|c| c != '"');
+                        symbol.cmp(asset) == std::cmp::Ordering::Equal
+                    });
+
+                    let value = match position {
+                        Some(position) => {
+                            position["free"].as_str().unwrap().parse::<f64>().unwrap()
+                        }
+                        None => 0 as f64,
+                    };
 
                     Position {
-                        asset,
-                        value: value["free"].as_str().unwrap().parse::<f64>().unwrap(),
+                        asset: asset.to_string(),
+                        value,
                     }
                 })
-                .filter(|position| self.tracked_assets.contains(&position.asset))
                 .collect::<Vec<Position>>()),
             None => Err("Failed to get account balances".into()),
         }
